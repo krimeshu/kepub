@@ -6,6 +6,7 @@
   "type": "module",
   "dependencies": {
     "adm-zip": "^0.5.9",
+    "cheerio": "^1.0.0-rc.10",
     "marked": "^4.0.5"
   },
   "devDependencies": {

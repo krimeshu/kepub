@@ -1,24 +1,26 @@
+import fs from 'fs';
 import AdmZip from 'adm-zip';
 import { marked } from 'marked';
+import { load } from 'cheerio';
 
 const testZip = () => {
-    // creating archives
     const zip = new AdmZip();
-
-    // add file directly
-    const content = 'inner content of the file';
-    zip.addFile('test.txt', Buffer.from(content, 'utf8'), 'entry comment goes here');
-    // add local file
-    zip.addLocalFile('./package.json');
-    // get everything as a buffer
-    // var willSendthis = zip.toBuffer();
-    // or write everything to disk
-    zip.writeZip(/* target file name */ './files.zip');
+    zip.addLocalFolder('example');
+    if (!fs.existsSync('.temp')) fs.mkdirSync('.temp');
+    zip.writeZip('.temp/example.epub');
 };
 
 const testMarked = () => {
     const html = marked.parse('# Marked in Node.js\n\nRendered by **marked**.');
+    console.log('html:', JSON.stringify(html));
     return html;
 };
 
-console.log(testMarked() || testZip());
+const testCheerio = (html) => {
+    const $ = load(html);
+    console.log('title:', $('h1').text());
+};
+
+const html = testMarked();
+testCheerio(html);
+testZip();
