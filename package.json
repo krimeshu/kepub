@@ -1,0 +1,32 @@
+{
+  "name": "kepub",
+  "version": "1.0.0",
+  "description": "A epub book builder.",
+  "main": "index.js",
+  "type": "module",
+  "dependencies": {
+    "adm-zip": "^0.5.9",
+    "marked": "^4.0.5"
+  },
+  "devDependencies": {
+    "eslint": "^8.3.0",
+    "eslint-config-airbnb": "^19.0.1",
+    "eslint-plugin-import": "^2.25.3",
+    "eslint-plugin-jsx-a11y": "^6.5.1",
+    "eslint-plugin-react": "^7.27.1"
+  },
+  "scripts": {
+    "lint": "eslint ./**/*.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/krimeshu/kepub.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/krimeshu/kepub/issues"
+  },
+  "homepage": "https://github.com/krimeshu/kepub#readme"
+}
