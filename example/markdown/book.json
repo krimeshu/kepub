@@ -1,0 +1,21 @@
+{
+  "meta": {
+    "id": "kepub:20211120:000000001",
+    "title": "Example Book",
+    "lang": "en",
+    "date": "2021-11-20",
+    "modified": "2021-11-20T14:50:00Z"
+  },
+  "cover": "images/cover.jpg",
+  "pages": [
+    {
+      "file": "chapter-1/index.md",
+      "children": [
+        {
+          "file": "chapter-1/ep-1.md",
+          "hidden": true
+        }
+      ]
+    }
+  ]
+}
