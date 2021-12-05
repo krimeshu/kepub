@@ -7,7 +7,11 @@
   "dependencies": {
     "adm-zip": "^0.5.9",
     "cheerio": "^1.0.0-rc.10",
-    "marked": "^4.0.5"
+    "marked": "^4.0.5",
+    "mime-types": "^2.1.34",
+    "mkdirp": "^1.0.4",
+    "rimraf": "^3.0.2",
+    "tiny-async-pool": "^1.2.0"
   },
   "devDependencies": {
     "eslint": "^8.3.0",
@@ -17,7 +21,8 @@
     "eslint-plugin-react": "^7.27.1"
   },
   "scripts": {
-    "lint": "eslint ./**/*.js"
+    "lint": "eslint ./**/*.js",
+    "test": "node . example/markdown"
   },
   "repository": {
     "type": "git",

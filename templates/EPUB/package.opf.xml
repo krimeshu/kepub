@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<package xmlns="http://www.idpf.org/2007/opf" 
+         xmlns:dc="http://purl.org/dc/elements/1.1/"
+         xmlns:dcterms="http://purl.org/dc/terms/"
+         version="3.0"
+         xml:lang="${meta.lang}"
+         unique-identifier="pub-identifier">
+  <metadata>
+    <dc:identifier id="pub-identifier">${meta.id}</dc:identifier>
+    <dc:title id="pub-title">${meta.title}</dc:title>
+    <dc:language id="pub-language">${meta.lang}</dc:language>
+    <dc:date>${meta.date}</dc:date>
+    <meta property="dcterms:modified">${meta.modified}</meta>
+  </metadata>
+  <manifest>
+    ${manifestList.map(item => `
+    <item id="${item.id}" href="${item.href}" media-type="${item.mediaType}" ${
+        item.properties ? `properties="${item.properties}"` : ''
+      }/>`
+    ).join('')}
+  </manifest>
+  <spine>
+    ${manifestList.filter(item => item.isPage).map(item => `
+    <itemref idref="${item.id}" ${
+        item.id === 'cover' ? 'linear="no"' : ''
+      }/>`
+    ).join('')}
+  </spine>
+</package>

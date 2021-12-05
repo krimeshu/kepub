@@ -1,4 +1,4 @@
 # kepub
 
-A epub book builder.
+A `.epub` book builder.
 

@@ -1,0 +1,14 @@
+parserOptions:
+  ecmaVersion: 2021
+  sourceType: module
+extends:
+- airbnb
+rules:
+  indent:
+  - off
+  - 4
+  no-console: off
+  import/extensions:
+  - warn
+  - always
+  - js: always
