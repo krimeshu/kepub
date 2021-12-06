@@ -7,12 +7,18 @@ import mkdirp from 'mkdirp';
 
 import { render } from './scripts/render.js';
 
-const testZip = async () => {
-    console.log('zip - start');
-    const zip = new AdmZip();
-    zip.addLocalFolder('example/epub');
-    zip.writeZip('.temp/example.epub');
-    console.log('zip - finished');
+const testRender = async () => {
+    const content = await render('EPUB/package.opf.xml', {
+        meta: {
+            id: 'kepub:20211120:000000001',
+            title: 'Example Book',
+            lang: 'en',
+            date: '2021-11-20',
+            modified: '2021-11-20T14:50:00Z',
+        },
+        manifestList: [],
+    });
+    await fs.writeFile('./.temp/package.opf', content);
 };
 
 const testMarked = async () => {
@@ -27,17 +33,12 @@ const testCheerio = (html) => {
     console.log('title:', $('h1').text());
 };
 
-const testRender = async () => {
-    const content = await render('EPUB/package.opf.xml', {
-        meta: {
-            id: 'kepub:20211120:000000001',
-            title: 'Example Book',
-            lang: 'en',
-            date: '2021-11-20',
-            modified: '2021-11-20T14:50:00Z',
-        },
-    });
-    await fs.writeFile('./.temp/package.opf', content);
+const testZip = async () => {
+    console.log('zip - start');
+    const zip = new AdmZip();
+    zip.addLocalFolder('example/min-epub');
+    zip.writeZip('.temp/example.epub');
+    console.log('zip - finished');
 };
 
 const work = async () => {

@@ -119,7 +119,6 @@ export default class Task {
     async renderPages(list) {
         const { targetDir } = this;
         const imageList = [];
-        const resList = [];
 
         // 渲染单个页面
         const renderPage = async (page) => {
@@ -147,11 +146,9 @@ export default class Task {
             images.forEach((relSrc) => {
                 // 处理图片相对路径
                 const src = path.join(pageDir, relSrc);
-                const saveImage = `EPUB/${src}`;
-                resList.push(src);
                 imageList.push({
                     src,
-                    saveAs: saveImage,
+                    saveAs: `EPUB/${src}`,
                 });
             });
 
@@ -166,7 +163,7 @@ export default class Task {
         await asyncPool(COPY_CONCUR_RESTRICTION, imageList, copyImage);
 
         return {
-            resList,
+            imageList,
         };
     }
 
@@ -188,8 +185,8 @@ export default class Task {
         } = flattenPages(pages);
 
         // 处理页面参数
-        const resList = [];
-        pageList.forEach((page) => {
+        const manifestList = [];
+        pageList.forEach((page, index) => {
             const refPage = page;
             const basePath = page.file.replace(/\.md$/i, '');
             const href = `${basePath}.xhtml`;
@@ -198,18 +195,21 @@ export default class Task {
                 const saveAs = `EPUB/${href}`;
                 refPage.saveAs = saveAs;
             }
-            resList.push(href);
+            manifestList.push({
+                id: `page-${index}`,
+                href,
+            });
         });
 
+        // 处理页面内引用的图片
         const {
-            resList: pageResList,
+            imageList,
         } = await this.renderPages(pageList);
-        resList.push(...pageResList);
-
-        // 准备资源清单
-        const manifestList = resList.map((href, index) => {
-            const id = `res-${index}`;
-            return { id, href };
+        imageList.forEach(({ src }, index) => {
+            manifestList.push({
+                id: `image-${index}`,
+                href: src,
+            });
         });
 
         // 生成目录
