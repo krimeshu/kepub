@@ -1,8 +1,7 @@
 import fs from 'fs/promises';
 import path from 'path';
 import os from 'os';
-// eslint-disable-next-line import/no-unresolved
-import { pipeline } from 'stream/promises';
+import { pipeline } from 'stream';
 import { createReadStream, createWriteStream } from 'fs';
 
 import AdmZip from 'adm-zip';
@@ -105,9 +104,16 @@ export default class Task {
         const dirPath = path.dirname(savePath);
         await mkdirp(dirPath);
 
-        const rs = createReadStream(srcPath);
-        const ws = createWriteStream(savePath);
-        return pipeline(rs, ws);
+        return new Promise((rs, rj) => {
+            pipeline(
+                createReadStream(srcPath),
+                createWriteStream(savePath),
+                (err) => {
+                    if (err) rj(err);
+                    rs();
+                },
+            );
+        });
     }
 
     async renderPages(list) {
