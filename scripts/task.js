@@ -20,10 +20,10 @@ const isDebug = true;
 const tempDir = isDebug ? './.temp'
     : path.join(os.tmpdir(), 'kepub');
 
-const RENDER_CONCURR_RESTRI = 10;
-const COPY_CONCURR_RESTRI = 5;
+const RENDER_CONCUR_RESTRICTION = 10;
+const COPY_CONCUR_RESTRICTION = 5;
 
-const flatternPages = (pages) => {
+const flattenPages = (pages) => {
     const list = [];
     const toc = [];
     pages.forEach((originPage) => {
@@ -35,7 +35,7 @@ const flatternPages = (pages) => {
 
         if (children && Array.isArray(children)) {
             delete page.children;
-            const { list: subList, toc: subToc } = flatternPages(children);
+            const { list: subList, toc: subToc } = flattenPages(children);
             tocItem.children = subToc;
             list.push(...subList);
         }
@@ -159,11 +159,11 @@ export default class Task {
         };
 
         // 并发处理页面
-        await asyncPool(RENDER_CONCURR_RESTRI, list, renderPage);
+        await asyncPool(RENDER_CONCUR_RESTRICTION, list, renderPage);
 
         const copyImage = (image) => this.copyImage(image);
         // 并发复制图片
-        await asyncPool(COPY_CONCURR_RESTRI, imageList, copyImage);
+        await asyncPool(COPY_CONCUR_RESTRICTION, imageList, copyImage);
 
         return {
             resList,
@@ -185,7 +185,7 @@ export default class Task {
         const {
             list: pageList,
             toc: pageTree,
-        } = flatternPages(pages);
+        } = flattenPages(pages);
 
         // 处理页面参数
         const resList = [];
@@ -206,17 +206,10 @@ export default class Task {
         } = await this.renderPages(pageList);
         resList.push(...pageResList);
 
-        // 处理资源清单
+        // 准备资源清单
         const manifestList = resList.map((href, index) => {
             const id = `res-${index}`;
-            const mediaType = mimeTypes.lookup(href);
-            const isPage = mediaType === 'application/xhtml+xml';
-            return {
-                id,
-                href,
-                mediaType,
-                isPage,
-            };
+            return { id, href };
         });
 
         // 生成目录
@@ -224,11 +217,9 @@ export default class Task {
             tocHtml: parseToc(pageTree),
         }));
         manifestList.unshift({
-            id: 'htmltoc',
+            id: 'toc-page',
             href: 'toc.xhtml',
-            mediaType: 'application/xhtml+xml',
             properties: 'nav',
-            isPage: true,
         });
 
         // 处理封面
@@ -241,7 +232,6 @@ export default class Task {
             manifestList.push({
                 id: 'cover-image',
                 href: cover,
-                mediaType: mimeTypes.lookup(cover),
                 properties: 'cover-image',
             });
             await this.writeFile('EPUB/cover.xhtml', await render('EPUB/cover.xhtml', {
@@ -250,10 +240,18 @@ export default class Task {
             manifestList.unshift({
                 id: 'cover-page',
                 href: 'cover.xhtml',
-                mediaType: 'application/xhtml+xml',
-                isPage: true,
             });
         }
+
+        // 处理资源类型
+        manifestList.forEach((item) => {
+            const refItem = item;
+            const { href } = item;
+            const mediaType = mimeTypes.lookup(href);
+            const isPage = mediaType === 'application/xhtml+xml';
+            refItem.mediaType = mediaType;
+            refItem.isPage = isPage;
+        });
 
         // 生成基础文件
         await Promise.all([
