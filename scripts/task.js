@@ -15,7 +15,7 @@ import {
     renderMdPage,
 } from './render.js';
 
-const isDebug = true;
+const isDebug = false;
 
 const tempDir = isDebug ? './.temp'
     : path.join(os.tmpdir(), 'kepub');
