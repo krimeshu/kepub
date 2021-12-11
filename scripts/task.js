@@ -63,6 +63,7 @@ const parseToc = (toc) => {
     return buffer.join('\n');
 };
 
+const isAbsolute = (src) => /^([^:\\/]+:\/)?\//.test(src);
 export default class Task {
     constructor(targetDir, config) {
         this.targetDir = targetDir;
@@ -81,6 +82,18 @@ export default class Task {
         this.pageList = [];
     }
 
+    getTempName() {
+        const usedName = this.$usedTempName || [];
+        this.$usedTempName = usedName;
+
+        const name = [Date.now(), Math.random()]
+            .map((n) => n.toString(16))
+            .join('_').replace(/\./g, '');
+        if (usedName.includes(name)) return this.getTempName();
+        usedName.push(name);
+        return name;
+    }
+
     // async readFile(subPath) {
     //     const { targetDir } = this;
     //     const filePath = path.join(targetDir, subPath);
@@ -95,10 +108,17 @@ export default class Task {
         return fs.writeFile(filePath, content);
     }
 
-    async copyImage({ src, saveAs }) {
+    async copyImage(src) {
+        if (/^https?:\/\//.test(src)) return src;
+
         const { targetDir, saveDir } = this;
-        const srcPath = path.join(targetDir, src);
-        const savePath = path.join(saveDir, saveAs);
+
+        const isAbs = isAbsolute(src);
+        const href = !isAbs ? src
+            : this.getTempName().concat(path.extname(src));
+
+        const srcPath = isAbs ? src : path.join(targetDir, src);
+        const savePath = path.join(saveDir, `EPUB/${href}`);
 
         // console.log(`[copy-image] from: ${srcPath}\n  to: ${savePath}`);
         const dirPath = path.dirname(savePath);
@@ -110,22 +130,22 @@ export default class Task {
                 createWriteStream(savePath),
                 (err) => {
                     if (err) rj(err);
-                    rs();
+                    rs(href);
                 },
             );
         });
     }
 
-    async renderPages(list) {
+    async convertPages(pageList) {
         const { targetDir } = this;
         const imageList = [];
 
-        // 渲染单个页面
-        const renderPage = async (page) => {
+        // 处理单个页面
+        const convertPage = async (page) => {
             const {
                 title: titleOrNot,
                 file,
-                saveAs,
+                href,
             } = page;
 
             const filePath = path.join(targetDir, file);
@@ -134,7 +154,7 @@ export default class Task {
                 content,
                 images,
             } = await renderMdPage(filePath, {
-                titleOrNot,
+                title: titleOrNot,
             });
 
             if (titleOrNot !== title) {
@@ -142,28 +162,44 @@ export default class Task {
                 refPage.title = title;
             }
 
-            const pageDir = path.dirname(file);
-            images.forEach((relSrc) => {
-                // 处理图片相对路径
-                const src = path.join(pageDir, relSrc);
-                imageList.push({
-                    src,
-                    saveAs: `EPUB/${src}`,
-                });
+            const pageDir = path.dirname(filePath);
+            images.forEach((src) => {
+                let fixedSrc = src;
+                if (!isAbsolute(src)) {
+                    // 处理页面相对路径
+                    const absSrc = path.join(pageDir, src);
+                    fixedSrc = path.relative(targetDir, absSrc);
+                }
+                if (!imageList.includes(fixedSrc)) {
+                    imageList.push(fixedSrc);
+                }
             });
 
-            return this.writeFile(saveAs, content);
+            const savePath = `EPUB/${href}`;
+            return this.writeFile(savePath, content);
         };
 
         // 并发处理页面
-        await asyncPool(RENDER_CONCUR_RESTRICTION, list, renderPage);
+        await asyncPool(RENDER_CONCUR_RESTRICTION, pageList, convertPage);
 
-        const copyImage = (image) => this.copyImage(image);
+        return {
+            imageList,
+        };
+    }
+
+    async transportImages(imageList) {
+        const imageHrefList = [];
+        const copyImage = async (image) => {
+            const href = await this.copyImage(image);
+            imageHrefList.push({
+                href,
+            });
+        };
         // 并发复制图片
         await asyncPool(COPY_CONCUR_RESTRICTION, imageList, copyImage);
 
         return {
-            imageList,
+            imageHrefList,
         };
     }
 
@@ -185,32 +221,35 @@ export default class Task {
         } = flattenPages(pages);
 
         // 处理页面参数
-        const manifestList = [];
-        pageList.forEach((page, index) => {
+        pageList.forEach((page) => {
             const refPage = page;
             const basePath = page.file.replace(/\.md$/i, '');
             const href = `${basePath}.xhtml`;
             refPage.href = href;
-            if (!page.saveAs) {
-                const saveAs = `EPUB/${href}`;
-                refPage.saveAs = saveAs;
-            }
-            manifestList.push({
-                id: `page-${index}`,
-                href,
-            });
         });
 
-        // 处理页面内引用的图片
+        // 转换页面
         const {
             imageList,
-        } = await this.renderPages(pageList);
-        imageList.forEach(({ src }, index) => {
-            manifestList.push({
+        } = await this.convertPages(pageList);
+
+        // 处理图片
+        const {
+            imageHrefList,
+        } = await this.transportImages(imageList);
+
+        const manifestList = [
+            // 页面加入资源列表
+            ...pageList.map(({ href }, index) => ({
+                id: `page-${index}`,
+                href,
+            })),
+            // 引用图片加入资源列表
+            ...imageHrefList.map(({ href }, index) => ({
                 id: `image-${index}`,
-                href: src,
-            });
-        });
+                href,
+            })),
+        ];
 
         // 生成目录
         await this.writeFile('EPUB/toc.xhtml', await render('EPUB/toc.xhtml', {
@@ -224,14 +263,9 @@ export default class Task {
 
         // 处理封面
         if (cover) {
-            const coverSaveAs = `EPUB/${cover}`;
-            await this.copyImage({
-                src: cover,
-                saveAs: coverSaveAs,
-            });
             manifestList.push({
                 id: 'cover-image',
-                href: cover,
+                href: await this.copyImage(cover),
                 properties: 'cover-image',
             });
             await this.writeFile('EPUB/cover.xhtml', await render('EPUB/cover.xhtml', {
@@ -252,6 +286,7 @@ export default class Task {
             refItem.mediaType = mediaType;
             refItem.isPage = isPage;
         });
+        const spineList = manifestList.filter((item) => item.isPage);
 
         // 生成基础文件
         await Promise.all([
@@ -260,7 +295,7 @@ export default class Task {
             this.writeFile('EPUB/package.opf', await render('EPUB/package.opf.xml', {
                 meta,
                 manifestList,
-                pageTree,
+                spineList,
             })),
         ]);
 

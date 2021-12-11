@@ -20,7 +20,7 @@
     ).join('')}
   </manifest>
   <spine>
-    ${manifestList.filter(item => item.isPage).map(item => `
+    ${spineList.map(item => `
     <itemref idref="${item.id}" ${
         item.id === 'cover' ? 'linear="no"' : ''
       }/>`
