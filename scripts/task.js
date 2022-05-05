@@ -214,7 +214,11 @@ export default class Task {
             meta,
             pages,
             cover,
+            options,
         } = this.config;
+        const {
+            tocTitle = 'Table of Contents',
+        } = options || {};
         const {
             list: pageList,
             toc: pageTree,
@@ -253,6 +257,7 @@ export default class Task {
 
         // 生成目录
         await this.writeFile('EPUB/toc.xhtml', await render('EPUB/toc.xhtml', {
+            tocTitle,
             tocHtml: parseToc(pageTree),
         }));
         manifestList.unshift({
