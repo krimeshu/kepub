@@ -218,6 +218,7 @@ export default class Task {
         } = this.config;
         const {
             tocTitle = 'Table of Contents',
+            coverTitle = 'Cover',
         } = options || {};
         const {
             list: pageList,
@@ -273,12 +274,13 @@ export default class Task {
                 href: await this.copyImage(cover),
                 properties: 'cover-image',
             });
-            await this.writeFile('EPUB/cover.xhtml', await render('EPUB/cover.xhtml', {
+            await this.writeFile('EPUB/auto-pages/cover.xhtml', await render('EPUB/auto-pages/cover.xhtml', {
+                coverTitle,
                 cover,
             }));
             manifestList.unshift({
                 id: 'cover-page',
-                href: 'cover.xhtml',
+                href: 'auto-pages/cover.xhtml',
             });
         }
 

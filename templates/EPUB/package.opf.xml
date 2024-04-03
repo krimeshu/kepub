@@ -11,6 +11,7 @@
     <dc:language id="pub-language">${meta.lang}</dc:language>
     <dc:date>${meta.date}</dc:date>
     <meta property="dcterms:modified">${meta.modified}</meta>
+    <meta name="cover" content="cover-image"/>
   </metadata>
   <manifest>
     ${manifestList.map(item => `
