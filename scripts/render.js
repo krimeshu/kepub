@@ -3,8 +3,9 @@ import path from 'path';
 
 import { marked } from 'marked';
 import { load as loadHtml } from 'cheerio';
+import { URL, fileURLToPath } from 'url';
 
-const dirname = path.dirname(import.meta.url.replace(/^file:\/\/?/, ''));
+const dirname = fileURLToPath(new URL('./', import.meta.url));
 
 export const render = async (templateName, args = {}) => {
     const filePath = path.join(dirname, '../templates', templateName);
@@ -29,13 +30,13 @@ export const renderMdPage = async (filePath, args = {}) => {
     }
     const markdown = await fs.readFile(filePath);
     const html = marked.parse(markdown.toString());
-
     const $ = loadHtml(html);
-    const firstH1 = $('h1').text();
+    const firstElem = $('body>*').eq(0);
+    const firstTitle = firstElem.is('h1,h2,h3,h4,h5,h6') ? firstElem.text() : null;
     const images = $('img').map((_, el) => $(el).attr('src')).get();
 
     const {
-        title = firstH1 || 'Untitled Page',
+        title = firstTitle || 'Untitled Page',
     } = args;
 
     const content = await render('EPUB/book-page.xhtml', {
