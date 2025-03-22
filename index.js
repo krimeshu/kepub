@@ -1,9 +1,13 @@
 import fs from 'fs/promises';
 import path from 'path';
+import { fileURLToPath, URL } from 'url';
 
 import Task from './scripts/task.js';
+import { formatTime } from './scripts/utils.js';
 
-const work = async (target) => {
+const dirname = fileURLToPath(new URL('./', import.meta.url));
+
+export const build = async (target = '') => {
     const targetDir = path.resolve(target);
     await fs.access(targetDir);
     if (!(await fs.stat(targetDir)).isDirectory()) {
@@ -28,4 +32,40 @@ const work = async (target) => {
     await task.run();
 };
 
-work(...process.argv.slice(2));
+export const create = async (target = '', lang = 'en') => {
+    if (!target) {
+        console.log('Please input a book name.');
+        return;
+    }
+    const targetPath = path.resolve(target);
+    const existed = await fs.access(targetPath).then(() => true, () => false);
+    if (existed) {
+        console.log(`Failed: target ${JSON.stringify(target)} is already existed.`);
+        console.log();
+        return;
+    }
+    const examplePath = path.join(dirname, 'example/markdown');
+    try {
+        console.log('Creating from example...');
+        await fs.cp(examplePath, targetPath, {
+            recursive: true,
+        });
+        const infoPath = path.join(targetPath, 'book.json');
+        const info = JSON.parse((await fs.readFile(infoPath)).toString());
+        const now = new Date();
+        Object.assign(info.meta, {
+            id: `kepub:${formatTime('yyyyMMdd', now)}:${now.getTime()}`,
+            title: target,
+            lang,
+            date: formatTime('yyyy-MM-dd', now),
+            modified: now.toISOString(),
+        });
+        await fs.writeFile(infoPath, JSON.stringify(info, null, 2));
+    } catch (ex) {
+        console.error(ex);
+        console.log();
+        console.log('Create failed.');
+        console.log();
+    }
+    console.log('Done:', targetPath);
+};
