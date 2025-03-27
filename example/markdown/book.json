@@ -6,6 +6,10 @@
     "date": "2021-11-20",
     "modified": "2021-11-20T14:50:00Z"
   },
+  "options": {
+    "tocTitle": "Table of Contents",
+    "coverTitle": "Cover"
+  },
   "cover": "images/cover.jpg",
   "pages": [
     {
